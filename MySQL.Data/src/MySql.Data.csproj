@@ -12,8 +12,8 @@
     <PackageId>AITSYS.MySql.Data</PackageId>
     <PackageTags>MySql;.NET Connector;MySql Connector/NET;netcore;.Net Core;MySql Conector/Net Core;coreclr;C/NET;C/Net Core</PackageTags>
     <PackageReleaseNotes>Review ReleaseNotes.txt for details.</PackageReleaseNotes>
-    <PackageIcon>logo-mysql-170x115.png</PackageIcon>
-    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <!--<PackageIcon>logo-mysql-170x115.png</PackageIcon>-->
+    <PackageReadmeFile>README</PackageReadmeFile>
     <PackageProjectUrl>https://dev.mysql.com/downloads/</PackageProjectUrl>
     <PackageLicenseExpression>GPL-2.0-only</PackageLicenseExpression>
     <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
@@ -46,12 +46,9 @@
     <DebugType>Portable</DebugType>
     <AllowedOutputExtensionsInPackageBuildOutputFolder>$(AllowedOutputExtensionsInPackageBuildOutputFolder);.pdb</AllowedOutputExtensionsInPackageBuildOutputFolder>
   </PropertyGroup>
-  <ItemGroup>
-    <None Include="..\..\Nuget\Images\logo-mysql-170x115.png" Pack="true" PackagePath="\" />
-  </ItemGroup>
 
   <ItemGroup>
-    <None Include="..\..\Nuget\Readme\MySQL.Data\README.md" Pack="true" PackagePath="\" />
+    <None Include="..\..\README" Pack="true" PackagePath="\" />
   </ItemGroup>
 	
   <ItemGroup>

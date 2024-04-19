@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2013, 2022, Oracle and/or its affiliates.
+﻿// Copyright (c) 2013, 2023, Oracle and/or its affiliates.
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License, version 2.0, as
@@ -95,6 +95,55 @@ namespace MySql.Data.MySqlClient.Tests
         string dbName = CreateDatabase("db1");
         c.ChangeDatabase(dbName);
         Assert.AreEqual(dbName, c.Database);
+      }
+    }
+
+    /// <summary>
+    /// Bug#35731216 Pool exhaustion after timeouts in transactions.
+    /// </summary>
+    [Test]
+    public void ConnectionPoolExhaustion()
+    {
+      for (var i = 0; i <= 11; i++)
+      {
+        var ex = Assert.Catch<MySqlException>(() => CreateCommandTimeoutException());
+        //Prior to the fix the exception thrown was 'error connecting: Timeout expired.  The timeout period elapsed prior to obtaining a connection from the pool.  This may have occurred because all pooled connections were in use and max pool size was reached.' after the 10th execution.
+        Assert.AreEqual("Fatal error encountered during command execution.", ex.Message);
+      }
+    }
+
+    private void CreateCommandTimeoutException()
+    {
+      MySqlConnectionStringBuilder settings = new MySqlConnectionStringBuilder(Connection.ConnectionString);
+      settings.Pooling = true;
+      settings.MaximumPoolSize = 10;
+      using (var conn = new MySqlConnection(settings.GetConnectionString(true)))
+      {
+        conn.Open();
+        using (var tran = conn.BeginTransaction())
+        {
+          using (var cmd = conn.CreateCommand())
+          {
+            cmd.CommandText = "DO SLEEP(5);";
+            cmd.CommandTimeout = 1;
+            cmd.ExecuteNonQuery();
+          }
+        }
+      }
+    }
+
+    /// <summary>
+    /// Bug#35827809 Connector/Net allows a connection that has been disposed to be reopened.
+    /// </summary>
+    [Test]
+    public void ReOpenDisposedConnection()
+    {
+      using (MySqlConnection c = new MySqlConnection(Connection.ConnectionString))
+      {
+        c.Open();
+        c.Close();
+        c.Dispose();
+        Assert.Throws<InvalidOperationException>(() => c.Open());
       }
     }
 
@@ -1476,9 +1525,30 @@ namespace MySql.Data.MySqlClient.Tests
       Assert.ThrowsAsync<OperationCanceledException>(async () => await conn.OpenAsync(cts.Token));
     }
 
-    #region Methods
 
-    private void ExecuteQueriesSuccess(string sql, string password)
+    /// <summary>
+    /// Bug # 35307501 [Opening two MySqlConnections simultaneously can crash]
+    /// </summary>
+    [Test]
+    public void OpenMultipleConnectionsOnMultipleThreads()
+    {
+        var tasks = new List<Task>();
+        for (int i = 0; i < 5; i++)
+        {
+            tasks.Add(Task.Run(() =>
+            {
+                using (var connection = new MySqlConnection(Connection.ConnectionString))
+                {
+                    connection.Open();
+                }
+            }));
+        }
+        Task.WaitAll(tasks.ToArray());
+    }
+
+            #region Methods
+
+            private void ExecuteQueriesSuccess(string sql, string password)
     {
       if (Version < new Version(8, 0, 17)) return;
       var sb = new MySqlConnectionStringBuilder(Connection.ConnectionString);

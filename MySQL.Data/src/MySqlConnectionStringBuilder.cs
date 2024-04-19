@@ -241,6 +241,9 @@ namespace MySql.Data.MySqlClient
         (msb, sender, value) => { msb.SetValue("blobasutf8excludepattern", value); }, (msb, sender) => msb.BlobAsUTF8ExcludePattern));
 
       #endregion
+
+      Options.Add(new MySqlConnectionStringOption("oldgetstringbehavior", null, typeof(bool), false, true,
+        (msb, sender, value) => { msb.SetValue("oldgetstringbehavior", value); }, (msb, sender) => msb.OldGetStringBehavior));
     }
 
     /// <summary>
@@ -850,9 +853,14 @@ namespace MySql.Data.MySqlClient
     }
 
     /// <summary>
-    /// Gets or sets the event for the callback.
+    /// Gets or sets the event for the Fido callback.
     /// </summary>
     internal FidoActionCallback FidoActionRequested { get; set; }
+
+    /// <summary>
+    /// Gets or sets the event for the WebauthN callback.
+    /// </summary>
+    internal WebAuthnActionCallback WebAuthnActionRequested { get; set; }
 
     #endregion
 
@@ -1008,6 +1016,17 @@ namespace MySql.Data.MySqlClient
       set { SetValue("usedefaultcommandtimeoutforef", value); }
     }
     #endregion
+
+    [DisplayName("Use the old GetString behavior for readers")]
+    [Category("Backwards Compatibility")]
+    [Description("When true, MySqlDataReader.GetString will return a string version of every possible data type")]
+    [DefaultValue(false)]
+    [Obsolete("This property is only used to provide old behavior.  This option and the old behavior will be removed in 9.0")]
+    public bool OldGetStringBehavior
+    {
+      get { return (bool)values["oldgetstringbehavior"]; }
+      set { SetValue("oldgetstringbehavior", value); }
+    }
 
     /// <summary>
     /// Gets or sets a connection option.

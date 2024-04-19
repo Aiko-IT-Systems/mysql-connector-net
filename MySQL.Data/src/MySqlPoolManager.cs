@@ -1,4 +1,4 @@
-// Copyright (c) 2004, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2004, 2023, Oracle and/or its affiliates.
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License, version 2.0, as
@@ -49,6 +49,7 @@ namespace MySql.Data.MySqlClient
     private static readonly Dictionary<string, MySqlPool> Pools = new Dictionary<string, MySqlPool>();
     private static readonly List<MySqlPool> ClearingPools = new List<MySqlPool>();
     internal const int DEMOTED_TIMEOUT = 120000;
+    private static SemaphoreSlim waitHandle = new(1);
 
     #region Properties
     /// <summary>
@@ -138,8 +139,7 @@ namespace MySql.Data.MySqlClient
     {
       string text = GetKey(settings);
 
-      SemaphoreSlim semaphoreSlim = new SemaphoreSlim(1);
-      semaphoreSlim.Wait(CancellationToken.None);
+      await waitHandle.WaitAsync(CancellationToken.None);
       MySqlPool pool;
       Pools.TryGetValue(text, out pool);
 
@@ -151,7 +151,7 @@ namespace MySql.Data.MySqlClient
       else
         pool.Settings = settings;
 
-      semaphoreSlim.Release();
+      waitHandle.Release();
       return pool;
     }
 
@@ -193,9 +193,6 @@ namespace MySql.Data.MySqlClient
 
     private static async Task ClearPoolByTextAsync(string key, bool execAsync)
     {
-      SemaphoreSlim semaphoreSlim = new SemaphoreSlim(1);
-      semaphoreSlim.Wait();
-
       // if pools doesn't have it, then this pool must already have been cleared
       if (!Pools.ContainsKey(key)) return;
 
@@ -208,14 +205,11 @@ namespace MySql.Data.MySqlClient
 
       // and then remove the pool from the active pools list
       Pools.Remove(key);
-
-      semaphoreSlim.Release();
     }
 
     public static async Task ClearAllPoolsAsync(bool execAsync)
     {
-      SemaphoreSlim semaphoreSlim = new SemaphoreSlim(1);
-      semaphoreSlim.Wait();
+      await waitHandle.WaitAsync();
 
       // Create separate keys list.
       List<string> keys = new List<string>(Pools.Count);
@@ -225,7 +219,7 @@ namespace MySql.Data.MySqlClient
       foreach (string key in keys)
         await ClearPoolByTextAsync(key, execAsync).ConfigureAwait(false);
 
-      semaphoreSlim.Release();
+      waitHandle.Release();
 
       if (DemotedServersTimer != null)
       {

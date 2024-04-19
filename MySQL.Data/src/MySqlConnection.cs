@@ -73,6 +73,7 @@ namespace MySql.Data.MySqlClient
     internal ConnectionState connectionState;
     internal Driver driver;
     internal bool hasBeenOpen;
+    internal bool hasBeenDisposed;
     private SchemaProvider _schemaProvider;
     private ExceptionInterceptor _exceptionInterceptor;
     internal CommandInterceptor commandInterceptor;
@@ -88,7 +89,13 @@ namespace MySql.Data.MySqlClient
     /// <summary>
     /// Occurs when FIDO authentication requests to perform gesture action on a device.
     /// </summary>
+    [Obsolete("FIDO authentication client-side plugin is now deprecated. Use WebAuthn authentication client-side plugin instead.")]
     public event FidoActionCallback FidoActionRequested;
+
+    /// <summary>
+    /// Occurs when WebAuthn authentication makes a request to perform the gesture action on a device.
+    /// </summary>
+    public event WebAuthnActionCallback WebAuthnActionRequested;
 
     /// <summary>
     /// Occurs when MySQL returns warnings as a result of executing a command or query.
@@ -109,6 +116,7 @@ namespace MySql.Data.MySqlClient
       //TODO: add event data to StateChange docs
       Settings = new MySqlConnectionStringBuilder();
       _database = String.Empty;
+      hasBeenDisposed = false;
     }
 
     /// <summary>
@@ -243,6 +251,12 @@ namespace MySql.Data.MySqlClient
     [Browsable(false)]
     public override ConnectionState State => connectionState;
 
+    [Browsable(true)]
+    /// <summary>
+    ///  Gets a boolean indicating if the current connection had been disposed.
+    /// </summary>
+    public bool IsDisposed { get { return hasBeenDisposed; } }
+
     /// <summary>Gets a string containing the version of the MySQL server to which the client is connected.</summary>
     /// <returns>The version of the instance of MySQL.</returns>
     /// <exception cref = "InvalidOperationException" > The connection is closed.</exception>
@@ -349,6 +363,7 @@ namespace MySql.Data.MySqlClient
     {
       if (State == ConnectionState.Open)
         Close();
+      hasBeenDisposed = true;
       base.Dispose(disposing);
     }
 
@@ -593,6 +608,9 @@ namespace MySql.Data.MySqlClient
       if (State != ConnectionState.Closed)
         Throw(new InvalidOperationException(Resources.ConnectionAlreadyOpen));
 
+      if (hasBeenDisposed)
+        Throw(new InvalidOperationException("The connection had been disposed."));
+
       // start up our interceptors
       _exceptionInterceptor = new ExceptionInterceptor(this);
       commandInterceptor = new CommandInterceptor(this);
@@ -601,6 +619,7 @@ namespace MySql.Data.MySqlClient
       AssertPermissions();
 
       Settings.FidoActionRequested = FidoActionRequested;
+      Settings.WebAuthnActionRequested = WebAuthnActionRequested;
 
       //TODO: SUPPORT FOR 452 AND 46X
       // if we are auto enlisting in a current transaction, then we will be
@@ -736,8 +755,6 @@ namespace MySql.Data.MySqlClient
             driver.currentTransaction.Connection = newConn;
           }
         }
-
-        await driver.CloseAsync(execAsync).ConfigureAwait(false);
       }
       catch (Exception ex)
       {
@@ -745,6 +762,7 @@ namespace MySql.Data.MySqlClient
       }
       finally
       {
+        await driver.CloseAsync(execAsync).ConfigureAwait(false);
         this.IsInUse = false;
       }
       SetState(ConnectionState.Closed, true);
@@ -1257,7 +1275,14 @@ namespace MySql.Data.MySqlClient
   /// Represents the method to handle the <see cref="MySqlConnection.FidoActionRequested"/> event of a 
   /// <see cref="MySqlConnection"/>
   /// </summary>
+  [Obsolete("FIDO authentication client-side plugin is now deprecated. Use WebAuthn authentication client-side plugin instead.")]
   public delegate void FidoActionCallback();
+
+  /// <summary>
+  /// Represents the method to handle the <see cref="MySqlConnection.WebAuthnActionRequested"/> event of a 
+  /// <see cref="MySqlConnection"/>.
+  /// </summary>
+  public delegate void WebAuthnActionCallback();
 
   /// <summary>
   /// Represents the method to handle the <see cref="MySqlConnection.InfoMessage"/> event of a 

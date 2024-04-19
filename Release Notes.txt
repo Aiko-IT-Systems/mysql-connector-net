@@ -1,17 +1,8 @@
-Connector/NET 8.1  Release Notes
+Connector/NET 8.3 Release Notes
 ------------------------------------
-Welcome to the release notes for Connector/NET 8.1
+Welcome to the release notes for Connector/NET 8.3
 
-What's new in 8.1
+What's new in 8.3
 --------------------
 
-Connector/NET has an implementation of OpenTelemetry.
-OpenTelementry (OTel) standardizes instrumentation, generation,
-collecting and exporting telemetry data to be consumed by an Observability backend,
-for more details visit its official site(https://opentelemetry.io/).
-To learn more about how to enable OpenTelementry in Connector/NET see 
-https://dev.mysql.com/doc/connector-net/en/connector-net-programming-telemetry.html
-
-A fix was implemented for connection problems with MariaDB server 10.x and later.
-The bug is tracked here: https://bugs.mysql.com/bug.php?id=110898
-Fix is not on the main package currently.
+Connector/NET added support for the GA version of .NET 8 and EF Core 8, if you want know more about .NET 8 see (https://learn.microsoft.com/en-us/dotnet/core/whats-new/dotnet-8).
